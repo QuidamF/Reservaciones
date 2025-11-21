@@ -4,6 +4,12 @@ This file documents the step-by-step development process of the Appointment Sche
 
 ## 2025-11-21
 
+### v0.6.5: Add Detailed Logging to Google Calendar Event Creation
+
+- **Backend (Google Calendar Integration):**
+    - Added detailed `print` statements within the `create_event` function in `google_calendar.py`.
+    - These logs now show the event data being sent to the Google Calendar API, the API's response upon successful event creation, and any `HttpError` exceptions encountered, greatly assisting in debugging appointment booking issues.
+
 ### v0.6.4: Add __init__.py to Backend Package
 
 - **Backend (Python Packaging):**

@@ -126,8 +126,15 @@ def create_event(service, start_time: datetime.datetime, end_time: datetime.date
         },
     }
     try:
+        print("--- Attempting to create Google Calendar event ---")
+        print("Event data being sent:")
+        print(event)
         created_event = service.events().insert(calendarId='primary', body=event).execute()
+        print("--- Successfully created event ---")
+        print("API Response:")
+        print(created_event)
         return created_event
     except HttpError as error:
-        print(f'An error occurred: {error}')
+        print(f"--- An error occurred while creating the event ---")
+        print(f"Error details: {error}")
         return None

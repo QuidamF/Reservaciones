@@ -20,7 +20,7 @@ const BookingView = () => {
         try {
             const dateStr = date.format('YYYY-MM-DD');
             // We fetch for a single day
-            const response = await fetch(`http://localhost:8000/availability?start_date=${dateStr}&end_date=${dateStr}`);
+            const response = await fetch(`http://127.0.0.1:8000/availability?start_date=${dateStr}&end_date=${dateStr}`);
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to fetch availability');
