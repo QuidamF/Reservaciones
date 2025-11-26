@@ -1,6 +1,11 @@
 fastapi
-uvicorn
+uvicorn==0.23.2
 pydantic
 google-api-python-client
 google-auth-oauthlib
+pytz
+SQLAlchemy
+passlib[bcrypt]
+python-jose
+python-multipart
 # Run 'pip install -r requirements.txt' to install these.

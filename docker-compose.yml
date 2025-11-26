@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+    # This command is for development with auto-reloading.
+    # For production, you might remove --reload and use a more robust server like Gunicorn.
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload

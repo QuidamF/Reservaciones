@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DatePicker, List, Button, message, Spin, Typography } from 'antd';
+import { DatePicker, List, Button, message, Spin, Typography, Modal, Form, Input } from 'antd';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -8,6 +8,9 @@ const BookingView = () => {
     const [selectedDate, setSelectedDate] = useState(null);
     const [loading, setLoading] = useState(false);
     const [availableSlots, setAvailableSlots] = useState([]);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [selectedSlot, setSelectedSlot] = useState(null);
+    const [form] = Form.useForm();
 
     const handleDateChange = async (date) => {
         if (!date) {
@@ -19,8 +22,9 @@ const BookingView = () => {
         setLoading(true);
         try {
             const dateStr = date.format('YYYY-MM-DD');
+            const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             // We fetch for a single day
-            const response = await fetch(`http://127.0.0.1:8000/availability?start_date=${dateStr}&end_date=${dateStr}`);
+            const response = await fetch(`http://127.0.0.1:8000/availability?start_date=${dateStr}&end_date=${dateStr}&timezone=${userTimezone}`);
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to fetch availability');
@@ -36,9 +40,49 @@ const BookingView = () => {
     };
 
     const handleBooking = (slot) => {
-        // For now, just a confirmation message
-        message.success(`Appointment booked for ${dayjs(slot.start_time).format('h:mm A')}!`);
-        // In a real app, this would trigger a POST to /book and update the availability
+        setSelectedSlot(slot);
+        setIsModalVisible(true);
+    };
+
+    const handleModalCancel = () => {
+        setIsModalVisible(false);
+        form.resetFields();
+    };
+
+    const handleFormSubmit = async (values) => {
+        if (!selectedSlot) return;
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/book', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    start_time: selectedSlot.start_time,
+                    end_time: selectedSlot.end_time,
+                    user_details: {
+                        name: values.name,
+                        details: values.details,
+                    },
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to book appointment');
+            }
+
+            message.success(`Appointment booked for ${dayjs(selectedSlot.start_time).format('h:mm A')}!`);
+            setIsModalVisible(false);
+            form.resetFields();
+            // Refresh availability
+            handleDateChange(selectedDate);
+
+        } catch (error) {
+            console.error(error);
+            message.error(error.message);
+        }
     };
 
     return (
@@ -68,6 +112,48 @@ const BookingView = () => {
             {!loading && selectedDate && availableSlots.length === 0 && (
                 <p style={{ marginTop: 20 }}>No available slots for this day.</p>
             )}
+
+            <Modal
+                title="Confirm Appointment"
+                open={isModalVisible}
+                onCancel={handleModalCancel}
+                footer={[
+                    <Button key="back" onClick={handleModalCancel}>
+                        Cancel
+                    </Button>,
+                    <Button form="bookingForm" key="submit" htmlType="submit" type="primary">
+                        Book Now
+                    </Button>,
+                ]}
+            >
+                {selectedSlot && (
+                    <p>
+                        You are booking an appointment for{' '}
+                        <strong>{dayjs(selectedSlot.start_time).format('MMMM D, YYYY')}</strong> at{' '}
+                        <strong>{dayjs(selectedSlot.start_time).format('h:mm A')}</strong>.
+                    </p>
+                )}
+                <Form
+                    form={form}
+                    id="bookingForm"
+                    layout="vertical"
+                    onFinish={handleFormSubmit}
+                >
+                    <Form.Item
+                        name="name"
+                        label="Your Name"
+                        rules={[{ required: true, message: 'Please enter your name' }]}
+                    >
+                        <Input />
+                    </Form.Item>
+                    <Form.Item
+                        name="details"
+                        label="Additional Details (optional)"
+                    >
+                        <Input.TextArea rows={4} />
+                    </Form.Item>
+                </Form>
+            </Modal>
         </div>
     );
 };

@@ -2,6 +2,37 @@
 
 This file documents the step-by-step development process of the Appointment Scheduler application.
 
+## 2025-11-24
+
+### v0.7.1: Fix Frontend Application Crash
+
+- **Frontend (Dependencies):**
+    - Corrected the version of `react-router-dom` in `package.json` from `^7.9.6` (a non-functional version) to `^6.24.0`.
+    - This resolves a critical runtime error that prevented the entire frontend application from rendering.
+
+### v0.7.0: Extend User Management Functionality
+
+- **Backend (API & CRUD):**
+    - Implemented CRUD (Create, Read, Update, Delete) operations for users in `backend/crud.py`.
+    - Added new API endpoints in `backend/main.py` to manage users:
+        - `GET /users`: Retrieves a list of all registered users.
+        - `PUT /users/{user_id}`: Updates a user's information (admin status or password).
+        - `DELETE /users/{user_id}`: Deletes a user.
+    - All new endpoints are protected and require administrator privileges.
+
+- **Frontend (UI/UX):**
+    - Completely revamped `frontend/src/components/UserManagementView.jsx`.
+    - The "Create User" form was moved into a modal.
+    - A table now lists all registered users with their username and admin status.
+    - Added actions for each user:
+        - **Edit:** Opens a modal to toggle the user's admin status.
+        - **Change Password:** Opens a modal to set a new password for the user.
+        - **Delete:** Uses a confirmation pop-up before deleting the user.
+    - The UI is now a complete management dashboard for users.
+
+- **Testing:**
+    - Due to limitations in the execution environment, end-to-end testing of the new functionality could not be completed. Manual verification is recommended.
+
 ## 2025-11-21
 
 ### v0.6.5: Add Detailed Logging to Google Calendar Event Creation
@@ -43,7 +74,7 @@ This file documents the step-by-step development process of the Appointment Sche
 - **Backend (FastAPI & Google Auth):**
     - Refactored the entire Google Authentication mechanism from a desktop/CLI flow to a proper web-based OAuth 2.0 flow.
     - Modified `google_calendar.py` to use `google_auth_oauthlib.flow.Flow` instead of `InstalledAppFlow`.
-    - Implemented functions to generate an authorization URL and to process the callback from Google.
+    - Implemented functions to generate an authorization URL and to process the a callback from Google.
     - Modified `main.py`:
         - The `/auth/google` endpoint now redirects the user to the Google consent screen.
         - Added a new `/auth/google/callback` endpoint to handle the authorization code, fetch the token, and save it.

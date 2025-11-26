@@ -1,100 +1,178 @@
-import React, { useState } from 'react';
-import { Form, InputNumber, Select, TimePicker, Button, Checkbox, Row, Col, message } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Form, InputNumber, Select, TimePicker, Button, Checkbox, Row, Col, message, Spin } from 'antd';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
 const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+const defaultFormValues = {
+  appointment_duration_minutes: 60,
+  rules: weekDays.map((day, index) => ({
+    day_of_week: index,
+    is_available: index < 5, // Monday to Friday available by default
+    work_hours: index < 5 ? [[dayjs('09:00', 'HH:mm'), dayjs('17:00', 'HH:mm')]] : []
+  })),
+  breaks: [[dayjs('12:00', 'HH:mm'), dayjs('13:00', 'HH:mm')]]
+};
+
 const ConfigurationView = () => {
   const [form] = Form.useForm();
+  const [config, setConfig] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const initialValues = {
-    appointment_duration_minutes: 60,
-    rules: weekDays.map((day, index) => ({
-      day_of_week: index,
-      is_available: index < 5, // Monday to Friday available by default
-      work_hours: index < 5 ? [
-        [dayjs('09:00', 'HH:mm'), dayjs('17:00', 'HH:mm')]
-      ] : []
-    })),
-    breaks: [
-      [dayjs('12:00', 'HH:mm'), dayjs('13:00', 'HH:mm')]
-    ]
-  };
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        // Include credentials for authenticated access
+        const response = await fetch('http://127.0.0.1:8000/config', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setConfig(data);
+          // Convert string times back to dayjs objects for the form
+          const formattedData = {
+            ...data,
+            rules: data.rules.map(rule => ({
+              ...rule,
+              // Ensure work_hours is an array before mapping
+              work_hours: (rule.work_hours || []).map(wh => [dayjs(wh.start, 'HH:mm'), dayjs(wh.end, 'HH:mm')])
+            })),
+            // Ensure breaks is an array before mapping
+            breaks: (data.breaks || []).map(br => [dayjs(br.start, 'HH:mm'), dayjs(br.end, 'HH:mm')])
+          };
+          form.setFieldsValue(formattedData);
+        } else if (response.status === 404) {
+          setEditMode(true); // No config, enter create mode, form uses default values from initialValues
+        } else {
+          throw new Error('Failed to fetch configuration');
+        }
+      } catch (error) {
+        console.error(error);
+        message.error(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchConfig();
+  }, [form]);
 
   const onFinish = async (values) => {
-    // Convert dayjs objects to time strings before sending
     const payload = {
-      ...values,
-      rules: values.rules.map(rule => ({
-        ...rule,
-        work_hours: rule.is_available ? rule.work_hours.map(range => ({
+        ...values,
+        rules: values.rules.map(rule => ({
+          ...rule,
+          work_hours: rule.is_available ? (rule.work_hours || []).map(range => ({
+            start: range[0].format('HH:mm'),
+            end: range[1].format('HH:mm'),
+          })) : [],
+        })),
+        breaks: (values.breaks || []).map(range => ({
           start: range[0].format('HH:mm'),
           end: range[1].format('HH:mm'),
-        })) : [],
-      })),
-      breaks: values.breaks.map(range => ({
-        start: range[0].format('HH:mm'),
-        end: range[1].format('HH:mm'),
-      })),
+        })),
+      };
+  
+      const method = config ? 'PUT' : 'POST';
+  
+      try {
+        const response = await fetch('http://127.0.0.1:8000/config', {
+          method,
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to save configuration');
+        }
+        message.success(`Configuration ${config ? 'updated' : 'saved'} successfully!`);
+        const data = await response.json();
+        setConfig(data);
+        setEditMode(false);
+      } catch (error) {
+        console.error(error);
+        message.error(error.message);
+      }
     };
 
-    try {
-      const response = await fetch('http://127.0.0.1:8000/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to save configuration');
-      }
-      message.success('Configuration saved successfully!');
-    } catch (error) {
-      console.error(error);
-      message.error('Error saving configuration.');
+    const handleCancel = () => {
+        // Reset form to original config values
+        const formattedData = {
+            ...config,
+            rules: config.rules.map(rule => ({
+              ...rule,
+              work_hours: (rule.work_hours || []).map(wh => [dayjs(wh.start, 'HH:mm'), dayjs(wh.end, 'HH:mm')])
+            })),
+            breaks: (config.breaks || []).map(br => [dayjs(br.start, 'HH:mm'), dayjs(br.end, 'HH:mm')])
+          };
+        form.setFieldsValue(formattedData);
+        setEditMode(false);
     }
-  };
 
   return (
+    <Spin spinning={loading}>
     <Form
       form={form}
       layout="vertical"
-      initialValues={initialValues}
       onFinish={onFinish}
+      initialValues={defaultFormValues}
     >
+        <fieldset disabled={!editMode}>
       <Form.Item label="Appointment Duration (minutes)" name="appointment_duration_minutes">
         <InputNumber min={15} max={240} step={15} />
       </Form.Item>
 
       <h3>Weekly Availability</h3>
       <Form.List name="rules">
-        {(fields) => (
-          <div>
-            {fields.map(field => (
-              <Row key={field.key} align="middle" style={{ marginBottom: 8 }}>
-                <Col span={4}>
-                  <span>{weekDays[field.name]}</span>
-                </Col>
-                <Col span={4}>
-                  <Form.Item {...field} name={[field.name, 'is_available']} valuePropName="checked" noStyle>
-                    <Checkbox>Available</Checkbox>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                   <Form.Item noStyle shouldUpdate>
-                    {() =>
-                      form.getFieldValue(['rules', field.name, 'is_available']) && (
-                        <Form.Item {...field} name={[field.name, 'work_hours', 0]} noStyle>
-                           <TimePicker.RangePicker format="HH:mm" minuteStep={15} />
-                        </Form.Item>
-                      )
-                    }
-                  </Form.Item>
-                </Col>
-              </Row>
-            ))}
-          </div>
-        )}
+        {(fields) => {
+            return (
+                <div>
+                    {fields.map(field => (
+                        <Row key={field.key} align="middle" style={{ marginBottom: 8 }}>
+                            <Col span={4}>
+                                <span>{weekDays[field.name]}</span>
+                            </Col>
+                            <Col span={4}>
+                                <Form.Item {...field} name={[field.name, 'is_available']} valuePropName="checked" noStyle>
+                                    <Checkbox>Available</Checkbox>
+                                </Form.Item>
+                            </Col>
+                            <Col span={12}>
+                               <Form.Item
+                                noStyle
+                                shouldUpdate={(prevValues, currentValues) =>
+                                    prevValues.rules?.[field.name]?.is_available !== currentValues.rules?.[field.name]?.is_available
+                                }
+                               >
+                                {({ getFieldValue }) =>
+                                  getFieldValue(['rules', field.name, 'is_available']) && (
+                                    <Form.Item {...field} name={[field.name, 'work_hours', 0]} noStyle
+                                        rules={[
+                                            {
+                                                validator: (_, value) => {
+                                                    if (!value || (!value[0] && !value[1])) {
+                                                        return Promise.resolve();
+                                                    }
+                                                    if (value[0] && value[1] && value[0].isBefore(value[1])) {
+                                                        return Promise.resolve();
+                                                    }
+                                                    return Promise.reject(new Error('End time must be after start time'));
+                                                },
+                                            },
+                                        ]}
+                                    >
+                                       <TimePicker.RangePicker format="HH:mm" minuteStep={15} />
+                                    </Form.Item>
+                                  )
+                                }
+                              </Form.Item>
+                            </Col>
+                        </Row>
+                    ))}
+                </div>
+            );
+        }}
       </Form.List>
 
        <h3>Breaks</h3>
@@ -104,7 +182,21 @@ const ConfigurationView = () => {
                     {fields.map(field => (
                          <Row key={field.key} align="middle" style={{ marginBottom: 8 }}>
                              <Col span={16}>
-                                <Form.Item {...field} noStyle>
+                                <Form.Item {...field} noStyle
+                                    rules={[
+                                        {
+                                            validator: (_, value) => {
+                                                if (!value || (!value[0] && !value[1])) {
+                                                    return Promise.resolve();
+                                                }
+                                                if (value[0] && value[1] && value[0].isBefore(value[1])) {
+                                                    return Promise.resolve();
+                                                }
+                                                return Promise.reject(new Error('Break end time must be after start time'));
+                                            },
+                                        },
+                                    ]}
+                                >
                                     <TimePicker.RangePicker format="HH:mm" minuteStep={15} />
                                 </Form.Item>
                              </Col>
@@ -121,13 +213,23 @@ const ConfigurationView = () => {
                 </>
             )}
         </Form.List>
-
+        </fieldset>
       <Form.Item>
-        <Button type="primary" htmlType="submit">
-          Save Configuration
-        </Button>
+        {editMode ? (
+            <>
+                <Button type="primary" htmlType="submit">
+                    {config ? 'Update Configuration' : 'Save Configuration'}
+                </Button>
+                {config && <Button style={{ marginLeft: 8 }} onClick={handleCancel}>Cancel</Button>}
+            </>
+        ) : (
+            <Button type="primary" onClick={() => setEditMode(true)}>
+                Modify Configuration
+            </Button>
+        )}
       </Form.Item>
     </Form>
+    </Spin>
   );
 };
 

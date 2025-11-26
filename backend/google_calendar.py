@@ -99,30 +99,31 @@ def get_busy_times(service, start_time: datetime.datetime, end_time: datetime.da
         }).execute()
         
         busy_intervals = []
-        for cal, data in events_result['calendars'].items():
-            for interval in data['busy']:
-                busy_intervals.append({
-                    'start': datetime.datetime.fromisoformat(interval['start']),
-                    'end': datetime.datetime.fromisoformat(interval['end'])
-                })
+        if 'calendars' in events_result:
+            for cal, data in events_result['calendars'].items():
+                for interval in data['busy']:
+                    busy_intervals.append({
+                        'start': datetime.datetime.fromisoformat(interval['start']),
+                        'end': datetime.datetime.fromisoformat(interval['end'])
+                    })
         return busy_intervals
 
     except HttpError as error:
         print(f'An error occurred: {error}')
         return []
 
-def create_event(service, start_time: datetime.datetime, end_time: datetime.datetime, summary: str, description: str = ''):
+def create_event(service, start_time: datetime.datetime, end_time: datetime.datetime, summary: str, description: str = '', timezone: str = 'UTC'):
     """Creates a new event in the primary calendar."""
     event = {
         'summary': summary,
         'description': description,
         'start': {
             'dateTime': start_time.isoformat(),
-            'timeZone': 'America/Mexico_City', # You might want to make this dynamic
+            'timeZone': timezone,
         },
         'end': {
             'dateTime': end_time.isoformat(),
-            'timeZone': 'America/Mexico_City', # You might want to make this dynamic
+            'timeZone': timezone,
         },
     }
     try:
@@ -138,3 +139,20 @@ def create_event(service, start_time: datetime.datetime, end_time: datetime.date
         print(f"--- An error occurred while creating the event ---")
         print(f"Error details: {error}")
         return None
+
+def get_events(service, start_time: datetime.datetime, end_time: datetime.datetime):
+    """
+    Fetches events from the primary calendar within a given time range.
+    """
+    try:
+        events_result = service.events().list(
+            calendarId='primary',
+            timeMin=start_time.isoformat(),
+            timeMax=end_time.isoformat(),
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+        return events_result.get('items', [])
+    except HttpError as error:
+        print(f'An error occurred: {error}')
+        return []
