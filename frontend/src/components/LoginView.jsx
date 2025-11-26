@@ -1,15 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, message, Card } from 'antd';
 import { useAuth } from '../AuthContext';
+import { useNavigate } from 'react-router-dom'; // Re-introduce useNavigate
 
 const LoginView = () => {
     const [loading, setLoading] = useState(false);
-    const { login } = useAuth();
+    const { login, user, token } = useAuth(); // Get user and token from useAuth
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (user && token) {
+            if (user.is_admin) {
+                navigate('/admin/config', { replace: true });
+            } else {
+                navigate('/book', { replace: true });
+            }
+        }
+    }, [user, token, navigate]); // Add user, token, navigate to dependency array
 
     const onFinish = async (values) => {
         setLoading(true);
         try {
-            await login(values.username, values.password);
+            await login(values.username, values.password); // Just call login
         } catch (error) {
             message.error(error.message);
         } finally {

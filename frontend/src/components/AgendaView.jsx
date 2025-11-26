@@ -3,6 +3,7 @@ import { List, Button, message, Spin, Typography, Segmented, Row, Col } from 'an
 import dayjs from 'dayjs';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
 import isoWeek from 'dayjs/plugin/isoWeek';
+import { useAuth } from '../AuthContext';
 
 dayjs.extend(weekOfYear);
 dayjs.extend(isoWeek);
@@ -14,9 +15,14 @@ const AgendaView = () => {
     const [viewMode, setViewMode] = useState('week'); // 'week' or 'month'
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(false);
+    const { token, logout } = useAuth(); // Get token and logout from AuthContext
 
     useEffect(() => {
         const fetchEvents = async () => {
+            if (!token) { // Don't fetch if no token is available
+                setLoading(false);
+                return;
+            }
             setLoading(true);
             try {
                 const startOf = viewMode === 'week' ? currentDate.startOf('isoWeek') : currentDate.startOf('month');
@@ -26,7 +32,14 @@ const AgendaView = () => {
                 const endDateStr = endOf.format('YYYY-MM-DD');
                 const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-                const response = await fetch(`http://127.0.0.1:8000/events?start_date=${startDateStr}&end_date=${endDateStr}&timezone=${userTimezone}`);
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/events?start_date=${startDateStr}&end_date=${endDateStr}&timezone=${userTimezone}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }, // Add Authorization header
+                });
+                if (response.status === 401) { // If 401, token is invalid, log out
+                    logout();
+                    message.error("Session expired or invalid. Please log in again.");
+                    return;
+                }
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.detail || 'Failed to fetch events');
@@ -42,7 +55,7 @@ const AgendaView = () => {
         };
 
         fetchEvents();
-    }, [currentDate, viewMode]);
+    }, [currentDate, viewMode, token, logout]); // Add logout to dependency array
 
     const handleNav = (direction) => {
         const unit = viewMode === 'week' ? 'week' : 'month';

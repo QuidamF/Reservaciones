@@ -14,7 +14,12 @@ This project is a web application that allows a user to define their availabilit
 
 ## How to Run the Application
 
-Follow these steps to get the application running locally.
+This project uses Docker for the backend to ensure a consistent environment and simplify setup. The frontend is a standard React application.
+
+### Prerequisites
+
+- **Docker and Docker Compose:** Make sure you have Docker installed and running on your system. You can get it from the [official Docker website](https://www.docker.com/products/docker-desktop).
+- **Node.js:** You will need Node.js (and npm) to run the frontend. You can download it from [nodejs.org](https://nodejs.org/).
 
 ### Step 1: Google Calendar API Setup
 
@@ -24,40 +29,38 @@ Before running the application, you must get credentials for the Google Calendar
 
 After following the instructions, you should have a `credentials.json` file placed inside the `backend` directory.
 
-### Step 2: Backend Setup (FastAPI)
+### Step 2: Backend Setup (Docker & FastAPI)
 
-1.  **Navigate to the backend directory:**
+1.  **Open a terminal** and navigate to the root directory of this project.
+2.  **Run the Docker Compose command:**
     ```bash
-    cd backend
+    docker-compose up --build
     ```
-2.  **(Recommended)** Create and activate a Python virtual environment:
-    ```bash
-    python -m venv venv
-    .\venv\Scripts\activate  # On Windows
-    # source venv/bin/activate  # On macOS/Linux
-    ```
-3.  **Install the required dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-4.  **Run the FastAPI server:**
-    ```bash
-    uvicorn main:app --reload
-    ```
-    The API will be running at `http://127.0.0.1:8000`.
+    This command will:
+    - Build the Docker image for the backend service (the first time you run it).
+    - Start a container for the backend service.
+    - The backend API will be running at `http://127.0.0.1:8000`.
+
+    You can add the `-d` flag (`docker-compose up --build -d`) to run the container in detached mode (in the background).
 
 ### Step 3: Frontend Setup (React)
 
-1.  **Open a new terminal** and navigate to the frontend directory:
+1.  **Configure API URL:**
+    Create a `.env.development` file in the `frontend/` directory with the following content:
+    ```
+    VITE_API_URL=http://127.0.0.1:8000/api/v1
+    ```
+    For production, create a `.env.production` file with your production API URL.
+
+2.  **Open a new terminal** and navigate to the `frontend` directory:
     ```bash
     cd frontend
     ```
-2.  **Install Node.js dependencies:**
-    *(If you haven't installed `antd` and `dayjs` yet, this is the time.)*
+3.  **Install Node.js dependencies:**
     ```bash
     npm install
     ```
-3.  **Run the React development server:**
+4.  **Run the React development server:**
     ```bash
     npm run dev
     ```
@@ -68,15 +71,36 @@ After following the instructions, you should have a `credentials.json` file plac
 1.  Once the backend is running, open your browser and go to:
     `http://127.0.0.1:8000/auth/google`
 2.  This will start the authentication process. Your browser will open a new tab asking you to log in with your Google account and grant the application permission to access your calendar.
-3.  After you grant permission, the application will store a `token.json` file in the `backend` directory. This will keep you authenticated for future sessions.
+3.  After you grant permission, the application will store a `token.json` file in the `backend` directory. This file will keep you authenticated for future sessions.
 
 ### Step 5: Using the Application
 
-1.  **Open the frontend application** in your browser (`http://localhost:5173`).
-2.  **Configure your availability:**
-    *   Use the "Configure" view to set your weekly work hours, breaks, and the duration of appointments.
-    *   Click "Save Configuration".
-3.  **Book an appointment:**
-    *   Switch to the "Book Appointment" view.
-    *   Select a date. The application will fetch available slots that don't conflict with your rules or existing events in your Google Calendar.
-    *   Choose a slot and click "Book". The event will be created in your Google Calendar automatically.
+1.  **Initial Setup:** Access `http://localhost:5173` (the root of the frontend). If no admin user is configured, you will be redirected to an initial setup page to create one.
+2.  **Login and Navigation:**
+    *   **Admin Users:** After logging in, administrators are redirected to `/admin/config`. They can also navigate to `/book` to view the public booking page.
+    *   **Public Booking:** The public booking page is available at `/book`.
+
+## Changes
+
+### 2025-11-26 (Latest Updates)
+
+This section summarizes the key changes and improvements made to the project.
+
+**Backend Refactoring:**
+*   **API Versioning:** Introduced `/api/v1` prefix for all core API endpoints (e.g., `/token`, `/users`, `/config`, `/availability`, `/book`, `/events`) by creating `backend/api.py` and integrating it via `APIRouter` in `backend/main.py`.
+*   **Initial Setup Endpoint:** Refined `GET /api/v1/initial-setup` to consistently return a `200 OK` status with a `{"setup_needed": true/false}` JSON body, improving clarity and preventing misinterpretation as an error.
+*   **Global State Management:** Implemented `backend/globals.py` to manage `initial_admin_setup_needed` flag, centralizing its control.
+*   **Root Endpoint Streamlining:** Cleaned up `GET /` in `backend/main.py`, removing `initial-setup` checks to focus on its role as a welcome/OAuth callback.
+
+**Frontend Improvements:**
+*   **Environment Variables:** Migrated hardcoded API URLs to `VITE_API_URL` environment variables (`.env.development`, `.env.production`) for flexible configuration.
+*   **React Router Warnings:** Addressed future compatibility warnings by enabling `v7_startTransition` and `v7_relativeSplatPath` flags in `BrowserRouter`.
+*   **Robust Authentication:**
+    *   Enhanced `AuthContext.jsx` for reliable state management, ensuring `user` and `token` are correctly set and `loading` state resolves accurately.
+    *   Implemented graceful handling of `401 Unauthorized` responses in authenticated views (`AgendaView`, `ConfigurationView`, `UserManagementView`) by triggering logout and displaying messages.
+*   **Centralized Redirection:**
+    *   Moved `BookingView` to `/book` for clearer public access.
+    *   Refactored initial routing logic into `AppRouter`'s root route element to intelligently redirect users based on authentication status and initial setup needs (to `/initial-setup`, `/admin/config`, or `/book`).
+    *   Removed imperative `navigate` calls from `LoginView` to centralize redirection.
+*   **UI/UX Enhancements:** Updated Ant Design `Modal` components in `UserManagementView.jsx` to use the `open` prop instead of the deprecated `visible`.
+*   **Debugging Cleanup:** Systematically removed all temporary `console.log` and `console.error` statements used during development and debugging, ensuring a clean console output.

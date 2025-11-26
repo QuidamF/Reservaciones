@@ -1,51 +1,34 @@
-# Project Name
+# Sobre el Proyecto
 
-## Purpose
-A brief description of what this project does and its main goals.
+## Resumen de Tareas
 
-## Setup
-Instructions on how to set up the project environment.
+A medida que se realicen tareas en este proyecto, se debe agregar un resumen de los cambios a este archivo. Esto ayudará a mantener el contexto del proyecto cada vez que se regrese a la terminal. Estos archivos de documentación se mantendrán actualizados automáticamente con cada cambio.
 
-1. **Prerequisites:**
-   - List any software or tools required (e.g., Node.js, Python, Docker).
-   - Provide installation commands if necessary.
+## Idioma
 
-2. **Installation:**
-   ```bash
-   git clone <repository_url>
-   cd <project_directory>
-   # Install dependencies (e.g., npm install, pip install)
-   ```
+El flujo de trabajo, la comunicación y la documentación de este proyecto se llevarán a cabo en español de Latinoamérica.
 
-## Usage
-How to run and use the project.
+## Descripción del Proyecto
 
-### Running the application
-```bash
-# Example command to start the application
-npm start
-python main.py
-```
+Se creará un archivo descriptivo del proyecto que detallará la siguiente información:
 
-### Running tests
-```bash
-# Example command to run tests
-npm test
-pytest
-```
+*   **Tecnologías utilizadas:** Lista de todas las tecnologías principales y secundarias.
+*   **Arquitectura:** Una descripción de la arquitectura del software, posiblemente incluyendo diagramas.
+*   **Función:** El propósito y la funcionalidad del proyecto.
+*   **Librerías requeridas:** Dependencias y librerías necesarias para ejecutar el proyecto.
+*   **Conocimientos previos:** Habilidades y conocimientos recomendados para comprender y contribuir al proyecto.
+*   **Diagramas:** Se utilizará Mermaid para crear diagramas que ilustren la arquitectura y los flujos de trabajo.
+*   
 
-## Gemini Specifics (if any)
-This section is for any details relevant to the Gemini CLI or agent interaction.
+## Ejecucion de comandos 
+Si tras un intento no se lograjecutar pedir al usuario que lo realice manualmente y comparta logs, ya que dependiendo del sistema operativo dado es el caso de Windows algunas funcoiones suelen estar restringidas por falta de compativilidad.
 
-- **Key Commands:** Any specific `gemini` commands pertinent to this project.
-- **Workflow:** 
-  - The first action should be to read the `CHANGELOG.md` file to get a quick context of the project.
-  - Every time a change or progress is made in the project, a summary should be reported in that same file.
-  - How the Gemini agent should interact with this project.
-- **Troubleshooting:** Common issues and their solutions when using Gemini with this project.
+## Entorno de desarrollo
+Validar con usuario Sistema operativo en que se está trabajando, así como interface de desarrollo, cmd, shell, terminal, etc.. conocer esto puede ayudar con la forma en que se interactua entre GEMINI CLI y el usuario.
 
-## Contributing
-Guidelines for contributing to the project.
+## Archivo readme
+Recordar que cada que se agregen pasos de ejecucion o requerimientos estos deberan ser descritos en el archivo Readme.md, ya que la falta de documentacion puede afectar la experiencia de usuario. 
+Utilizar logica de descripción de proyecto, sin olvidar pasos de ejecucion e instalacion aunque resulten obvios.
 
-## License
-Information about the project's license.
+## Librerias
+En caso de ser necesarias nuevas librerias dependiendo del lenguaje agregarlas en documentacion por ejemplo si es python en archivo requirements.txt

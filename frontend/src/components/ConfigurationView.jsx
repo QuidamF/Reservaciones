@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Form, InputNumber, Select, TimePicker, Button, Checkbox, Row, Col, message, Spin } from 'antd';
 import dayjs from 'dayjs';
+import { useAuth } from '../AuthContext';
 
 const { Option } = Select;
 const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -20,14 +21,21 @@ const ConfigurationView = () => {
   const [config, setConfig] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { logout, user } = useAuth(); // Get logout and user from AuthContext
+  //console.log("ConfigurationView - user:", user);
 
   useEffect(() => {
     const fetchConfig = async () => {
       try {
         // Include credentials for authenticated access
-        const response = await fetch('http://127.0.0.1:8000/config', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/config`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token_admin')}` }
         });
+        if (response.status === 401) {
+            logout();
+            message.error("Session expired or invalid. Please log in again.");
+            return;
+        }
         if (response.ok) {
           const data = await response.json();
           setConfig(data);
@@ -56,7 +64,7 @@ const ConfigurationView = () => {
       }
     };
     fetchConfig();
-  }, [form]);
+  }, [form, logout]); // Add logout to dependency array
 
   const onFinish = async (values) => {
     const payload = {
@@ -77,11 +85,16 @@ const ConfigurationView = () => {
       const method = config ? 'PUT' : 'POST';
   
       try {
-        const response = await fetch('http://127.0.0.1:8000/config', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/config`, {
           method,
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token_admin')}` },
           body: JSON.stringify(payload),
         });
+        if (response.status === 401) {
+            logout();
+            message.error("Session expired or invalid. Please log in again.");
+            return;
+        }
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.detail || 'Failed to save configuration');

@@ -60,3 +60,7 @@ class BookingRequest(BaseModel):
     start_time: datetime.datetime
     end_time: datetime.datetime
     user_details: dict
+
+class SetupStatus(BaseModel):
+    setup_needed: bool
+

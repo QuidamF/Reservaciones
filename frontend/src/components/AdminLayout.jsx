@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layout, Menu, theme, Button } from 'antd';
+import { Layout, Menu, theme, Button, Spin } from 'antd'; // Import Spin
 import { UserOutlined, SettingOutlined, CalendarOutlined, LogoutOutlined } from '@ant-design/icons';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
@@ -7,14 +7,22 @@ import { useAuth } from '../AuthContext';
 const { Header, Content, Footer } = Layout;
 
 const AdminLayout = () => {
-    const { logout, user } = useAuth();
+    const { logout, user, loading: authLoading } = useAuth(); // Get authLoading
     const navigate = useNavigate();
     const {
         token: { colorBgContainer },
     } = theme.useToken();
 
+    if (authLoading) { // Wait for authentication to resolve
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+                <Spin size="large" />
+            </div>
+        );
+    }
+
     if (!user || !user.is_admin) {
-        // Redirect non-admin users if they somehow reach here
+        // Redirect non-admin users if they somehow reach here after auth is resolved
         navigate('/login', { replace: true });
         return null;
     }

@@ -2,11 +2,42 @@
 
 This file documents the step-by-step development process of the Appointment Scheduler application.
 
+## 2025-11-26 (Latest Updates)
+
+This section summarizes the key changes and improvements made to the project.
+
+**Backend Refactoring:**
+*   **API Versioning:** Introduced `/api/v1` prefix for all core API endpoints (e.g., `/token`, `/users`, `/config`, `/availability`, `/book`, `/events`) by creating `backend/api.py` and integrating it via `APIRouter` in `backend/main.py`.
+*   **Initial Setup Endpoint:** Refined `GET /api/v1/initial-setup` to consistently return a `200 OK` status with a `{"setup_needed": true/false}` JSON body, improving clarity and preventing misinterpretation as an error.
+*   **Global State Management:** Implemented `backend/globals.py` to manage `initial_admin_setup_needed` flag, centralizing its control.
+*   **Root Endpoint Streamlining:** Cleaned up `GET /` in `backend/main.py`, removing `initial-setup` checks to focus on its role as a welcome/OAuth callback.
+
+**Frontend Improvements:**
+*   **Environment Variables:** Migrated hardcoded API URLs to `VITE_API_URL` environment variables (`.env.development`, `.env.production`) for flexible configuration.
+*   **React Router Warnings:** Addressed future compatibility warnings by enabling `v7_startTransition` and `v7_relativeSplatPath` flags in `BrowserRouter`.
+*   **Robust Authentication:**
+    *   Enhanced `AuthContext.jsx` for reliable state management, ensuring `user` and `token` are correctly set and `loading` state resolves accurately.
+    *   Implemented graceful handling of `401 Unauthorized` responses in authenticated views (`AgendaView`, `ConfigurationView`, `UserManagementView`) by triggering logout and displaying messages.
+*   **Centralized Redirection:**
+    *   Moved `BookingView` to `/book` for clearer public access.
+    *   Refactored initial routing logic into `AppRouter`'s root route element to intelligently redirect users based on authentication status and initial setup needs (to `/initial-setup`, `/admin/config`, or `/book`).
+    *   Removed imperative `navigate` calls from `LoginView` to centralize redirection.
+*   **UI/UX Enhancements:** Updated Ant Design `Modal` components in `UserManagementView.jsx` to use the `open` prop instead of the deprecated `visible`.
+*   **Debugging Cleanup:** Systematically removed all temporary `console.log` and `console.error` statements used during development and debugging, ensuring a clean console output.
+
 ## 2025-11-24
+
+### v0.7.2: Frontend Stability and Improved Development Session Handling
+
+- **Frontend (Dependencies):**
+    - Corrected the version of `react-router-dom` in `package.json` from `^7.9.6` (a non-functional April Fool's joke version) to `^6.24.0`. This resolved a critical runtime error that was preventing the frontend application from rendering.
+- **Frontend (Auth Context):**
+    - Modified `frontend/src/AuthContext.jsx` to implement role-based token storage in `localStorage`. Instead of a single 'token' key, tokens are now stored as `token_admin` or `token_public` based on the logged-in user's role (`is_admin` status).
+    - This change prevents session conflicts when switching between administrator and public user accounts during development in the same browser, improving the development experience.
 
 ### v0.7.1: Fix Frontend Application Crash
 
-- **Frontend (Dependencies):**
+- **Frontend (Dependencies):
     - Corrected the version of `react-router-dom` in `package.json` from `^7.9.6` (a non-functional version) to `^6.24.0`.
     - This resolves a critical runtime error that prevented the entire frontend application from rendering.
 

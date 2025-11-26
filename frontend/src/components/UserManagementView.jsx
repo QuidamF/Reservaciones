@@ -24,7 +24,7 @@ const UserManagementView = () => {
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
     const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
-    const { token } = useAuth();
+    const { token, logout } = useAuth(); // Get token and logout from AuthContext
     const [form] = Form.useForm();
     const [editForm] = Form.useForm();
     const [passwordForm] = Form.useForm();
@@ -32,9 +32,14 @@ const UserManagementView = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://127.0.0.1:8000/users', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/users`, {
                 headers: { 'Authorization': `Bearer ${token}` },
             });
+            if (response.status === 401) {
+                logout();
+                message.error("Session expired or invalid. Please log in again.");
+                return;
+            }
             if (!response.ok) throw new Error('Failed to fetch users');
             const data = await response.json();
             setUsers(data);
@@ -47,11 +52,11 @@ const UserManagementView = () => {
 
     useEffect(() => {
         fetchUsers();
-    }, [token]);
+    }, [token, logout]); // Add logout to dependency array
 
     const handleCreate = async (values) => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/users', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/users`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -59,6 +64,11 @@ const UserManagementView = () => {
                 },
                 body: JSON.stringify(values),
             });
+            if (response.status === 401) {
+                logout();
+                message.error("Session expired or invalid. Please log in again.");
+                return;
+            }
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to create user');
@@ -74,7 +84,7 @@ const UserManagementView = () => {
 
     const handleUpdate = async (values) => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/users/${editingUser.id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/users/${editingUser.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -82,6 +92,11 @@ const UserManagementView = () => {
                 },
                 body: JSON.stringify({ is_admin: values.is_admin }),
             });
+            if (response.status === 401) {
+                logout();
+                message.error("Session expired or invalid. Please log in again.");
+                return;
+            }
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to update user');
@@ -100,7 +115,7 @@ const UserManagementView = () => {
             return;
         }
         try {
-            const response = await fetch(`http://127.0.0.1:8000/users/${editingUser.id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/users/${editingUser.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -108,6 +123,11 @@ const UserManagementView = () => {
                 },
                 body: JSON.stringify({ password: values.password }),
             });
+            if (response.status === 401) {
+                logout();
+                message.error("Session expired or invalid. Please log in again.");
+                return;
+            }
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to change password');
@@ -121,10 +141,15 @@ const UserManagementView = () => {
 
     const handleDelete = async (userId) => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/users/${userId}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/users/${userId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` },
             });
+            if (response.status === 401) {
+                logout();
+                message.error("Session expired or invalid. Please log in again.");
+                return;
+            }
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to delete user');
@@ -193,7 +218,7 @@ const UserManagementView = () => {
 
             <Modal
                 title="Create New User"
-                visible={isCreateModalVisible}
+                open={isCreateModalVisible}
                 onCancel={handleCreateCancel}
                 footer={null}
             >
@@ -215,7 +240,7 @@ const UserManagementView = () => {
 
             <Modal
                 title={`Edit User: ${editingUser?.username}`}
-                visible={isEditModalVisible}
+                open={isEditModalVisible}
                 onCancel={handleEditCancel}
                 footer={null}
             >
@@ -231,7 +256,7 @@ const UserManagementView = () => {
 
             <Modal
                 title={`Change Password for ${editingUser?.username}`}
-                visible={isPasswordModalVisible}
+                open={isPasswordModalVisible}
                 onCancel={handlePasswordCancel}
                 footer={null}
             >

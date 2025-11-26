@@ -24,7 +24,7 @@ const BookingView = () => {
             const dateStr = date.format('YYYY-MM-DD');
             const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             // We fetch for a single day
-            const response = await fetch(`http://127.0.0.1:8000/availability?start_date=${dateStr}&end_date=${dateStr}&timezone=${userTimezone}`);
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/availability?start_date=${dateStr}&end_date=${dateStr}&timezone=${userTimezone}`);
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to fetch availability');
@@ -53,7 +53,7 @@ const BookingView = () => {
         if (!selectedSlot) return;
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/book', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/book`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -8,37 +8,45 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchUser = async () => {
-            let currentToken = localStorage.getItem('token_admin') || localStorage.getItem('token_public');
+        const checkAuthStatus = async () => {
+            setLoading(true); // Start loading
+            const adminToken = localStorage.getItem('token_admin');
+            const publicToken = localStorage.getItem('token_public');
+            let currentToken = adminToken || publicToken;
+
             if (currentToken) {
                 try {
-                    const response = await fetch('http://127.0.0.1:8000/users/me', {
+                    const response = await fetch(`${import.meta.env.VITE_API_URL}/users/me`, {
                         headers: { Authorization: `Bearer ${currentToken}` },
                     });
                     if (response.ok) {
                         const userData = await response.json();
                         setUser(userData);
-                        setToken(currentToken); // Ensure token state is updated if retrieved from local storage
+                        setToken(currentToken); // Update state with the token from localStorage
                     } else {
-                        // Token is invalid, clear all related tokens
+                        // Token is invalid on the backend, clear and logout
                         logout();
                     }
                 } catch (error) {
-                    console.error('Failed to fetch user', error);
+                    console.error('Failed to fetch user or network error:', error);
                     logout();
                 }
+            } else {
+                // No token found in localStorage, ensure states are cleared
+                logout(); // Clears user and token states, and localStorage
             }
-            setLoading(false);
+            setLoading(false); // End loading regardless of outcome
         };
-        fetchUser();
-    }, [token]);
+
+        checkAuthStatus();
+    }, []); // Empty dependency array means it runs only once on mount
 
     const login = async (username, password) => {
         const formData = new URLSearchParams();
         formData.append('username', username);
         formData.append('password', password);
 
-        const response = await fetch('http://127.0.0.1:8000/token', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/token`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: formData,
@@ -49,7 +57,7 @@ export const AuthProvider = ({ children }) => {
             const accessToken = data.access_token;
 
             // Fetch user details to determine role
-            const userResponse = await fetch('http://127.0.0.1:8000/users/me', {
+            const userResponse = await fetch(`${import.meta.env.VITE_API_URL}/users/me`, {
                 headers: { Authorization: `Bearer ${accessToken}` },
             });
 
@@ -72,7 +80,7 @@ export const AuthProvider = ({ children }) => {
                 logout();
                 throw new Error('Failed to get user details after login');
             }
-            return true;
+            return userData;
         } else {
             const error = await response.json();
             throw new Error(error.detail || 'Failed to login');
